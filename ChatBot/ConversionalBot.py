@@ -15,20 +15,13 @@ from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 
-# -------------------------------------------------
-# ENV
-# -------------------------------------------------
 load_dotenv()
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
-# -------------------------------------------------
-# APP
-# -------------------------------------------------
+
 app = FastAPI(title="Artisan Explanation Chatbot")
 
-# -------------------------------------------------
-# VECTOR DB
-# -------------------------------------------------
+
 embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
 
 vectorstore = Chroma(
@@ -38,51 +31,41 @@ vectorstore = Chroma(
 
 retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
 
-# -------------------------------------------------
-# LLM (GROQ)
-# -------------------------------------------------
+
 llm = ChatGroq(
     model="openai/gpt-oss-120b",
     temperature=0.2
 )
 
-# -------------------------------------------------
-# PROMPT (EXPLANATION ENGINE)
-# -------------------------------------------------
+
 prompt = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """
-You are an explanation engine.
-Use only retrieved facts.
-No persuasion. No marketing.
 
-Explain using:
-- time investment
-- material quality
-- cultural value
-- market comparison
+    ("system", """
+     
+        You are an explanation engine.
+        Use only retrieved facts.
+        No persuasion. No marketing.
 
-If data is missing, explicitly say so.
+        Explain using:
+        - time investment
+        - material quality
+        - cultural value
+        - market comparison
+
+        If data is missing, explicitly say so.
 """
-    ),
-    (
-        "human",
-        "Buyer question: {question}\n\nContext:\n{context}"
-    )
+     ),
+
+    ( "human","Buyer question: {question}\n\nContext:\n{context}")
 ])
 
-# -------------------------------------------------
-# MEMORY (STRUCTURED)
-# -------------------------------------------------
+
 memory = ConversationSummaryBufferMemory(
     llm=llm,
     max_token_limit=600
 )
 
-# -------------------------------------------------
-# QA CHAIN
-# -------------------------------------------------
+
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
     retriever=retriever,
@@ -94,15 +77,10 @@ qa_chain = RetrievalQA.from_chain_type(
     return_source_documents=False
 )
 
-# -------------------------------------------------
-# REQUEST SCHEMA
-# -------------------------------------------------
+
 class ChatRequest(BaseModel):
     question: str
 
-# -------------------------------------------------
-# ROUTES
-# -------------------------------------------------
 
 @app.get("/")
 def health():
@@ -128,7 +106,4 @@ def reset_memory():
     memory.clear()
     return {"status": "memory cleared"}
 
-# -------------------------------------------------
-# RUN
-# -------------------------------------------------
-# uvicorn app:app --reload
+
